@@ -98,23 +98,32 @@ exports.getFriends = async (req, res, next) => {
 exports.addFriend = async (req, res, next) => {
   const { id } = req.params;
   if (!id) return;
-  let user = await Friend.findOne({ user: req.userId });
-
-  if (!user) {
-    await Friend.create({ user: req.userId, friends: id });
-  } else {
-    await Friend.findOneAndUpdate(
-      { user: req.userId },
-      { $push: { friends: id } }
-    );
-  }
-  user = await Friend.findOne({ user: id });
-  if (!user) {
-    await Friend.create({ user: id, friends: req.userId });
-  } else {
-    await Friend.findOneAndUpdate(
-      { user: id },
-      { $push: { friends: req.userId } }
-    );
+  try {
+    const temp = await Friend.findOne({ user: req.userId, friends: id });
+    if (temp) {
+      const err = new Error("Exsist");
+      err.statusCode = 500;
+      throw err;
+    }
+    let user = await Friend.findOne({ user: req.userId });
+    if (!user) {
+      await Friend.create({ user: req.userId, friends: id });
+    } else {
+      await Friend.findOneAndUpdate(
+        { user: req.userId },
+        { $push: { friends: id } }
+      );
+    }
+    user = await Friend.findOne({ user: id });
+    if (!user) {
+      await Friend.create({ user: id, friends: req.userId });
+    } else {
+      await Friend.findOneAndUpdate(
+        { user: id },
+        { $push: { friends: req.userId } }
+      );
+    }
+  } catch (error) {
+    next(error);
   }
 };
